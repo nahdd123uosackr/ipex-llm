@@ -5,7 +5,7 @@
 FROM ubuntu:22.04 as build
 
 # Copy the files to the build image
-COPY ./start-llama-cpp.sh ./start-ollama.sh ./benchmark_llama-cpp.sh /llm/scripts/
+COPY start-llama-cpp.sh start-ollama.sh benchmark_llama-cpp.sh /llm/scripts/
 
 # Stage 2: Final image that only includes necessary runtime artifacts
 FROM intel/oneapi-basekit:2025.0.2-0-devel-ubuntu22.04
