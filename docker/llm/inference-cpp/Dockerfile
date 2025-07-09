@@ -91,7 +91,7 @@ RUN set -eux && \
     find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
     rm -rf /root/.cache/Cypress
 RUN cd / && wget https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    tar xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz -strip-components=1 -C && \
+    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C / && \
     rm ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz
 
 ENTRYPOINT ["/bin/bash", "/start-ollama.sh"]
