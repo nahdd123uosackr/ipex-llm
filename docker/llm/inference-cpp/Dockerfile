@@ -40,18 +40,14 @@ RUN set -eux && \
     #
     # Ensure scripts are executable
     chmod +x /llm/scripts/*.sh && \
-    # 
-    # Configure Intel OneAPI and GPU repositories
-    chmod +x /llm/scripts/*.sh && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl wget git sudo libunwind8-dev vim less gnupg gpg-agent software-properties-common && \
     # Python 3.11 설치
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get install -y --no-install-recommends python3.11 python3-pip python3.11-dev python3.11-distutils python3-wheel && \
     rm /usr/bin/python3 && ln -s /usr/bin/python3.11 /usr/bin/python3 && ln -s /usr/bin/python3 /usr/bin/python && \
-    wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py && python3 get-pip.py && rm get-pip.py && \
     # IPEX-LLM 재설치
-    pip3 install --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
+    pip3 install --break-system-packages --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
     # Ollama 바이너리 설치
     cd / && \
     wget -q https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
@@ -63,11 +59,9 @@ RUN set -eux && \
     # GPU 디바이스 확인
     ls -la /dev/dri/ || echo "No DRI devices found" && \
     # 환경 변수 최종 설정
-    export LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH && \
     # 라이브러리 호환성 테스트
     python3 -c "try:\n    import torch\n    print('PyTorch loaded successfully')\n    import intel_extension_for_pytorch as ipex\n    print('IPEX loaded successfully, version:', ipex.__version__)\n    if hasattr(ipex, 'xpu'):\n        print('XPU device count:', ipex.xpu.device_count())\n    else:\n        print('XPU not available')\nexcept Exception as e:\n    print('Library test failed:', str(e))\n" || true
-RUN cd / && wget https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    mkdir /lib/ollama && tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
-    rm ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz
 
+
+ENV LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH
 ENTRYPOINT ["/lib/ollama/ollama", "serve"]
