@@ -2,13 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Stage 1: Build stage to handle file preparation
-FROM ubuntu:22.04 as build
+FROM ubuntu:24.04 as build
+ENV DEVICE=iGPU
+ENV no_proxy=localhost,127.0.0.1
+ENV OLLAMA_NUM_GPU=999
+ENV OLLAMA_KEEP_ALIVE=10m
+ENV OLLAMA_HOST=0.0.0.0:11434
+ENV ONEAPI_DEVICE_SELECTOR="level_zero:0"
+ENV SYCL_CACHE_PERSISTENT=1
+ENV ZES_ENABLE_SYSMAN=1
+ENV SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=1
+ENV IPEX_LLM_FORCE_BATCH_FORWARD=1
+ENV SYCL_DEVICE_FILTER=level_zero:gpu
+ENV SYCL_DEVICE_TYPE=GPU
+ENV LEVEL_ZERO_CACHE_PERSISTENT=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+ENV IPEX_LLM_NUM_CTX=16384
 
 # Copy the files to the build image
 COPY docker/llm/inference-cpp/start-llama-cpp.sh docker/llm/inference-cpp/start-ollama.sh docker/llm/inference-cpp/benchmark_llama-cpp.sh /llm/scripts/
-
-# Stage 2: Final image that only includes necessary runtime artifacts
-FROM intel/oneapi-basekit:2025.0.2-0-devel-ubuntu22.04
 
 # Copy the scripts from the build stage
 COPY --from=build /llm/scripts /llm/scripts/
@@ -20,7 +33,7 @@ ARG https_proxy
 ARG PIP_NO_CACHE_DIR=false
 
 # Set environment variables
-ENV TZ=Asia/Shanghai \
+ENV TZ=Asia/Seoul \
     PYTHONUNBUFFERED=1 \
     SYCL_CACHE_PERSISTENT=1
 
@@ -31,67 +44,33 @@ RUN set -eux && \
     chmod +x /llm/scripts/*.sh && \
     # 
     # Configure Intel OneAPI and GPU repositories
-    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-oneapi-archive-keyring.gpg > /dev/null && \
-    echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
-    chmod 644 /usr/share/keyrings/intel-oneapi-archive-keyring.gpg && \
-    rm /etc/apt/sources.list.d/intel-graphics.list && \
-    wget -O- https://repositories.intel.com/graphics/intel-graphics.key | gpg --dearmor | tee /usr/share/keyrings/intel-graphics.gpg > /dev/null && \
-    echo "deb [arch=amd64,i386 signed-by=/usr/share/keyrings/intel-graphics.gpg] https://repositories.intel.com/graphics/ubuntu jammy arc" | tee /etc/apt/sources.list.d/intel.gpu.jammy.list && \
-    chmod 644 /usr/share/keyrings/intel-graphics.gpg && \
-    # 
-    # Update and install basic dependencies
+    chmod +x /llm/scripts/*.sh && \
     apt-get update && \
-    apt-get install -y --no-install-recommends \
-      curl wget git sudo libunwind8-dev vim less gnupg gpg-agent software-properties-common && \
-    # 
-    # Set timezone
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    # 
-    # Install Python 3.11
+    apt-get install -y --no-install-recommends curl wget git sudo libunwind8-dev vim less gnupg gpg-agent software-properties-common && \
+    # Python 3.11 설치
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get install -y --no-install-recommends python3.11 python3-pip python3.11-dev python3.11-distutils python3-wheel && \
-    rm /usr/bin/python3 && ln -s /usr/bin/python3.11 /usr/bin/python3 && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    # 
-    # Install pip and essential Python packages
-    wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py && \
-    python3 get-pip.py && rm get-pip.py && \
-    pip install --upgrade requests argparse urllib3 && \
-    pip install --pre --upgrade ipex-llm[cpp] && \
-    pip install transformers==4.36.2 transformers_stream_generator einops tiktoken && \
-    # 
-    # Remove breaks install packages
-    apt-get remove -y libze-dev libze-intel-gpu1 && \
-    # 
-    # Install Intel GPU OpenCL Driver and Compute Runtime
-    mkdir -p /tmp/gpu && cd /tmp/gpu && \
-    echo "Downloading Intel Compute Runtime (24.52) for Gen12+..." && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.5.6/intel-igc-core-2_2.5.6+18417_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.5.6/intel-igc-opencl-2_2.5.6+18417_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/intel-level-zero-gpu_1.6.32224.5_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/intel-opencl-icd_24.52.32224.5_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/libigdgmm12_22.5.5_amd64.deb && \
-    # 
-    echo "Downloading Legacy Compute Runtime (24.35) for pre-Gen12 support..." && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.35.30872.22/intel-level-zero-gpu-legacy1_1.3.30872.22_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.35.30872.22/intel-opencl-icd-legacy1_24.35.30872.22_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17537.20/intel-igc-core_1.0.17537.20_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17537.20/intel-igc-opencl_1.0.17537.20_amd64.deb && \
-    # 
-    dpkg -i *.deb && rm -rf /tmp/gpu && \
-    # 
-    # Install oneAPI Level Zero Loader
-    mkdir /tmp/level-zero && cd /tmp/level-zero && \
-    wget https://github.com/oneapi-src/level-zero/releases/download/v1.20.2/level-zero_1.20.2+u22.04_amd64.deb && \
-    wget https://github.com/oneapi-src/level-zero/releases/download/v1.20.2/level-zero-devel_1.20.2+u22.04_amd64.deb && \
-    dpkg -i *.deb && rm -rf /tmp/level-zero && \
-    # 
-    # Clean up unnecessary dependencies to reduce image size
-    find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
-    rm -rf /root/.cache/Cypress
+    rm /usr/bin/python3 && ln -s /usr/bin/python3.11 /usr/bin/python3 && ln -s /usr/bin/python3 /usr/bin/python && \
+    wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py && python3 get-pip.py && rm get-pip.py && \
+    # IPEX-LLM 재설치
+    pip3 install --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
+    # Ollama 바이너리 설치
+    cd / && \
+    if [ ! -f "./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz" ]; then wget -q https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz; fi && \
+    mkdir -p /lib/ollama && \
+    tar -xf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
+    cp /lib/ollama/*.so* /lib/ 2>/dev/null || true && \
+    rm -f ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
+    # 라이브러리 링크 수정
+    if [ -f "/opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0" ]; then ln -sf /opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0 /usr/lib/libur_loader.so.0; fi && \
+    # GPU 디바이스 확인
+    ls -la /dev/dri/ || echo "No DRI devices found" && \
+    # 환경 변수 최종 설정
+    export LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH && \
+    # 라이브러리 호환성 테스트
+    python3 -c "try:\n    import torch\n    print('PyTorch loaded successfully')\n    import intel_extension_for_pytorch as ipex\n    print('IPEX loaded successfully, version:', ipex.__version__)\n    if hasattr(ipex, 'xpu'):\n        print('XPU device count:', ipex.xpu.device_count())\n    else:\n        print('XPU not available')\nexcept Exception as e:\n    print('Library test failed:', str(e))\n" || true
 RUN cd / && wget https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C / && \
+    mkdir /lib/ollama && tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
     rm ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz
 
-ENTRYPOINT ["/bin/bash", "/start-ollama.sh"]
+ENTRYPOINT ["/lib/ollama/ollama", "serve"]
