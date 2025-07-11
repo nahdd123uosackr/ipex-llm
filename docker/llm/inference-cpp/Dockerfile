@@ -23,8 +23,6 @@ ENV IPEX_LLM_NUM_CTX=16384
 # Copy the files to the build image
 COPY docker/llm/inference-cpp/start-llama-cpp.sh docker/llm/inference-cpp/start-ollama.sh docker/llm/inference-cpp/benchmark_llama-cpp.sh /llm/scripts/
 
-# Copy the scripts from the build stage
-COPY --from=build /llm/scripts /llm/scripts/
 
 # Set build arguments for proxy
 ARG http_proxy
