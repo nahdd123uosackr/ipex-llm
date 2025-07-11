@@ -42,11 +42,11 @@ RUN set -eux && \
     chmod +x /llm/scripts/*.sh && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl wget git sudo libunwind8-dev vim less gnupg gpg-agent software-properties-common && \
-    # Configure Intel OneAPI and GPU repositories
+    # Intel OneAPI 및 GPU 저장소 추가
     wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-oneapi-archive-keyring.gpg > /dev/null && \
     echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
     chmod 644 /usr/share/keyrings/intel-oneapi-archive-keyring.gpg && \
-    rm /etc/apt/sources.list.d/intel-graphics.list && \
+    rm -f /etc/apt/sources.list.d/intel-graphics.list || true && \
     wget -O- https://repositories.intel.com/graphics/intel-graphics.key | gpg --dearmor | tee /usr/share/keyrings/intel-graphics.gpg > /dev/null && \
     echo "deb [arch=amd64,i386 signed-by=/usr/share/keyrings/intel-graphics.gpg] https://repositories.intel.com/graphics/ubuntu jammy arc" | tee /etc/apt/sources.list.d/intel.gpu.jammy.list && \
     chmod 644 /usr/share/keyrings/intel-graphics.gpg && \
@@ -87,12 +87,12 @@ RUN set -eux && \
     mkdir -p /lib/ollama && \
     tar -xf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
     rm -f ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
+    apt install intel-basekit -y && \
     # 라이브러리 링크 수정
     if [ -f "/opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0" ]; then ln -sf /opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0 /usr/lib/libur_loader.so.0; fi && \
     # GPU 디바이스 확인
     ls -la /dev/dri/ || echo "No DRI devices found" && \
     # 라이브러리 호환성 테스트
     python3 -c "try: import torch; print('PyTorch loaded successfully'); import intel_extension_for_pytorch as ipex; print('IPEX loaded successfully, version:', ipex.__version__); print('XPU device count:', ipex.xpu.device_count() if hasattr(ipex, 'xpu') else 'XPU not available') except Exception as e: print('Library test failed:', str(e))" || true
-RUN apt install intel-basekit -y
 ENV LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH
 ENTRYPOINT ["/lib/ollama/ollama", "serve"]
