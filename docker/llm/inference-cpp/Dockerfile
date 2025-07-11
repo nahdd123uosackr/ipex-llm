@@ -52,7 +52,7 @@ RUN set -eux && \
     chmod 644 /usr/share/keyrings/intel-graphics.gpg && \
     apt-get update && \
     # Intel GPU 관련 패키지 설치
-    apt-get install -y --no-install-recommends libze-dev libze-intel-gpu1 libze1 intel-metrics-discovery intel-opencl-icd clinfo intel-gsc intel-ocloc libze-intel-gpu-raytracing && \
+    apt-get install -y --no-install-recommends libze-dev libze-intel-gpu1 libze1 intel-metrics-discovery intel-opencl-icd clinfo intel-gsc intel-ocloc && \
     # Python 3.11 설치
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get install -y --no-install-recommends python3.11 python3-pip python3.11-dev python3.11-distutils python3-wheel && \
