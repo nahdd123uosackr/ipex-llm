@@ -59,25 +59,8 @@ RUN set -eux && \
     rm /usr/bin/python3 && ln -s /usr/bin/python3.11 /usr/bin/python3 && ln -s /usr/bin/python3 /usr/bin/python && \
     # IPEX-LLM 재설치
     pip3 install --break-system-packages --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
-    # Intel GPU 드라이버 및 런타임(Compute Runtime, Level Zero 등) 수동 설치
-    mkdir -p /tmp/gpu && cd /tmp/gpu && \
-    echo "Downloading Intel Compute Runtime (24.52) for Gen12+..." && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.5.6/intel-igc-core-2_2.5.6+18417_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.5.6/intel-igc-opencl-2_2.5.6+18417_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/intel-level-zero-gpu_1.6.32224.5_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/intel-opencl-icd_24.52.32224.5_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.52.32224.5/libigdgmm12_22.5.5_amd64.deb && \
-    echo "Downloading Legacy Compute Runtime (24.35) for pre-Gen12 support..." && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.35.30872.22/intel-level-zero-gpu-legacy1_1.3.30872.22_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/24.35.30872.22/intel-opencl-icd-legacy1_24.35.30872.22_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17537.20/intel-igc-core_1.0.17537.20_amd64.deb && \
-    wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17537.20/intel-igc-opencl_1.0.17537.20_amd64.deb && \
-    dpkg -i *.deb && rm -rf /tmp/gpu && \
-    # Install oneAPI Level Zero Loader
-    mkdir /tmp/level-zero && cd /tmp/level-zero && \
-    wget https://github.com/oneapi-src/level-zero/releases/download/v1.20.2/level-zero_1.20.2+u22.04_amd64.deb && \
-    wget https://github.com/oneapi-src/level-zero/releases/download/v1.20.2/level-zero-devel_1.20.2+u22.04_amd64.deb && \
-    dpkg -i *.deb && rm -rf /tmp/level-zero && \
+    # Intel GPU 런타임 및 드라이버 패키지 레포지토리에서 설치
+    apt-get install -y --no-install-recommends intel-level-zero-gpu intel-level-zero-gpu-legacy1 intel-opencl-icd intel-opencl-icd-legacy1 libigdgmm12 intel-igc-core intel-igc-opencl level-zero level-zero-devel && \
     # Clean up unnecessary dependencies to reduce image size
     find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
     rm -rf /root/.cache/Cypress && \
