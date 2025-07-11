@@ -60,7 +60,7 @@ RUN set -eux && \
     # IPEX-LLM 재설치
     pip3 install --break-system-packages --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
     # Intel GPU 런타임 및 드라이버 패키지 레포지토리에서 설치
-    apt-get install -y --no-install-recommends intel-level-zero-gpu intel-level-zero-gpu-legacy1 intel-opencl-icd intel-opencl-icd-legacy1 libigdgmm12 intel-igc-core intel-igc-opencl level-zero level-zero-devel && \
+    apt-get install -y --no-install-recommends intel-level-zero-gpu intel-opencl-icd libigdgmm12 level-zero intel-metrics-discovery clinfo intel-gsc intel-ocloc && \
     # Clean up unnecessary dependencies to reduce image size
     find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
     rm -rf /root/.cache/Cypress && \
