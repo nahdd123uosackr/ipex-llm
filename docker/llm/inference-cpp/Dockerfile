@@ -65,7 +65,7 @@ RUN set -eux && \
     find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
     rm -rf /root/.cache/Cypress && \
     # Ollama 바이너리 설치
-    cd / && \
+    cd / && mkdir /dev/dri && \
     wget -q https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
     mkdir -p /lib/ollama && \
     tar -xf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
@@ -77,4 +77,8 @@ RUN set -eux && \
     # 라이브러리 호환성 테스트
     python3 -c "try: import torch; print('PyTorch loaded successfully'); import intel_extension_for_pytorch as ipex; print('IPEX loaded successfully, version:', ipex.__version__); print('XPU device count:', ipex.xpu.device_count() if hasattr(ipex, 'xpu') else 'XPU not available') except Exception as e: print('Library test failed:', str(e))" || true
 ENV LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH
+RUN groupadd -f render \
+    && usermod -a -G video root \
+    && usermod -a -G render root
+
 ENTRYPOINT ["/lib/ollama/ollama", "serve"]
