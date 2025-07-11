@@ -55,12 +55,7 @@ RUN set -eux && \
     # IPEX-LLM 재설치
     pip3 install --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
     # Ollama 바이너리 설치
-    cd / && \
-    if [ ! -f "./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz" ]; then wget -q https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz; fi && \
-    mkdir -p /lib/ollama && \
-    tar -xf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
-    cp /lib/ollama/*.so* /lib/ 2>/dev/null || true && \
-    rm -f ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
+
     # 라이브러리 링크 수정
     if [ -f "/opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0" ]; then ln -sf /opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0 /usr/lib/libur_loader.so.0; fi && \
     # GPU 디바이스 확인
