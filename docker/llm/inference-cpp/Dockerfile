@@ -56,12 +56,6 @@ RUN set -eux && \
     rm -f ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
     # 라이브러리 링크 수정
     if [ -f "/opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0" ]; then ln -sf /opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0 /usr/lib/libur_loader.so.0; fi && \
-    # GPU 디바이스 확인
-    ls -la /dev/dri/ || echo "No DRI devices found" && \
-    # 환경 변수 최종 설정
-    # 라이브러리 호환성 테스트
-    python3 -c "try:\n    import torch\n    print('PyTorch loaded successfully')\n    import intel_extension_for_pytorch as ipex\n    print('IPEX loaded successfully, version:', ipex.__version__)\n    if hasattr(ipex, 'xpu'):\n        print('XPU device count:', ipex.xpu.device_count())\n    else:\n        print('XPU not available')\nexcept Exception as e:\n    print('Library test failed:', str(e))\n" || true
-
 
 ENV LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH
 ENTRYPOINT ["/lib/ollama/ollama", "serve"]
