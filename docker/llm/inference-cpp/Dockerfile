@@ -60,7 +60,7 @@ RUN set -eux && \
     # IPEX-LLM 재설치
     pip3 install --break-system-packages --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
     # Intel GPU 런타임 및 드라이버 패키지 레포지토리에서 설치
-    apt-get install -y --no-install-recommends intel-level-zero-gpu intel-opencl-icd libigdgmm12 level-zero intel-metrics-discovery clinfo intel-gsc intel-ocloc && \
+    apt-get install -y --no-install-recommends intel-opencl-icd libigdgmm12 intel-metrics-discovery clinfo intel-gsc intel-ocloc intel-basekit && \
     # Clean up unnecessary dependencies to reduce image size
     find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
     rm -rf /root/.cache/Cypress && \
@@ -70,7 +70,6 @@ RUN set -eux && \
     mkdir -p /lib/ollama && \
     tar -xf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib/ollama && \
     rm -f ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    apt install intel-basekit -y && \
     # 라이브러리 링크 수정
     if [ -f "/opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0" ]; then ln -sf /opt/intel/oneapi/compiler/2024.2/lib/libur_loader.so.0 /usr/lib/libur_loader.so.0; fi && \
     # GPU 디바이스 확인
