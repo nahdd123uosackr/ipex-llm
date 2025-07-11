@@ -59,18 +59,7 @@ RUN set -eux && \
     # GPU 디바이스 확인
     ls -la /dev/dri/ || echo "No DRI devices found" && \
     # 라이브러리 호환성 테스트
-    python3 -c "try:
-    import torch
-    print('PyTorch loaded successfully')
-    import intel_extension_for_pytorch as ipex
-    print('IPEX loaded successfully, version:', ipex.__version__)
-    if hasattr(ipex, 'xpu'):
-        print('XPU device count:', ipex.xpu.device_count())
-    else:
-        print('XPU not available')
-except Exception as e:
-    print('Library test failed:', str(e))
-" || true
+    python3 -c "try: import torch; print('PyTorch loaded successfully'); import intel_extension_for_pytorch as ipex; print('IPEX loaded successfully, version:', ipex.__version__); print('XPU device count:', ipex.xpu.device_count() if hasattr(ipex, 'xpu') else 'XPU not available') except Exception as e: print('Library test failed:', str(e))" || true
 
 ENV LD_LIBRARY_PATH=/lib/ollama:/usr/lib/ollama:/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH
 ENTRYPOINT ["/lib/ollama/ollama", "serve"]
