@@ -23,7 +23,8 @@ RUN apt update && \
     software-properties-common \
     ca-certificates \
     wget \
-    ocl-icd-libopencl1
+    ocl-icd-libopencl1 cmake pkg-config build-essential vainfo clinfo intel-gpu-tools net-tools iputils-ping pciutils
+
 
 # Intel GPU compute user-space drivers
 RUN mkdir -p /tmp/gpu && \
