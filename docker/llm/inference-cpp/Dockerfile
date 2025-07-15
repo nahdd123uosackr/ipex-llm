@@ -1,8 +1,5 @@
-# Copyright (C) 2025 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
-
-# Stage 1: Build stage to handle file preparation
-FROM ubuntu:24.04 as build
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
 ENV DEVICE=iGPU
 ENV no_proxy=localhost,127.0.0.1
 ENV OLLAMA_NUM_GPU=999
@@ -20,53 +17,31 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 ENV IPEX_LLM_NUM_CTX=16384
 
-# Copy the files to the build image
-COPY docker/llm/inference-cpp/start-llama-cpp.sh docker/llm/inference-cpp/start-ollama.sh docker/llm/inference-cpp/benchmark_llama-cpp.sh /llm/scripts/
+# Base packages
+RUN apt update && \
+    apt install --no-install-recommends -q -y \
+    software-properties-common \
+    ca-certificates \
+    wget \
+    ocl-icd-libopencl1
 
+# Intel GPU compute user-space drivers
+RUN mkdir -p /tmp/gpu && \
+ cd /tmp/gpu && \
+ wget https://github.com/oneapi-src/level-zero/releases/download/v1.21.9/level-zero_1.21.9+u24.04_amd64.deb && \
+ wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.8.3/intel-igc-core-2_2.8.3+18762_amd64.deb && \
+ wget https://github.com/intel/intel-graphics-compiler/releases/download/v2.8.3/intel-igc-opencl-2_2.8.3+18762_amd64.deb && \
+ wget https://github.com/intel/compute-runtime/releases/download/25.09.32961.7/intel-level-zero-gpu_1.6.32961.7_amd64.deb && \
+ wget https://github.com/intel/compute-runtime/releases/download/25.09.32961.7/intel-opencl-icd_25.09.32961.7_amd64.deb && \
+ wget https://github.com/intel/compute-runtime/releases/download/25.09.32961.7/libigdgmm12_22.6.0_amd64.deb && \
+ dpkg -i *.deb && \
+ rm *.deb
 
-# Set build arguments for proxy
-ARG http_proxy
-ARG https_proxy
-# Disable pip cache
-ARG PIP_NO_CACHE_DIR=false
-
-# Set environment variables
-ENV TZ=Asia/Seoul \
-    PYTHONUNBUFFERED=1 \
-    SYCL_CACHE_PERSISTENT=1
-
-# Install dependencies and configure the environment
-RUN set -eux && \
-    #
-    # Ensure scripts are executable
-    chmod +x /llm/scripts/*.sh && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends curl wget git sudo libunwind8-dev vim less gnupg gpg-agent software-properties-common && \
-    # Intel OneAPI 및 GPU 저장소 추가
-    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-oneapi-archive-keyring.gpg > /dev/null && \
-    echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
-    chmod 644 /usr/share/keyrings/intel-oneapi-archive-keyring.gpg && \
-    rm -f /etc/apt/sources.list.d/intel-graphics.list || true && \
-    wget -O- https://repositories.intel.com/graphics/intel-graphics.key | gpg --dearmor | tee /usr/share/keyrings/intel-graphics.gpg > /dev/null && \
-    echo "deb [arch=amd64,i386 signed-by=/usr/share/keyrings/intel-graphics.gpg] https://repositories.intel.com/graphics/ubuntu jammy arc" | tee /etc/apt/sources.list.d/intel.gpu.jammy.list && \
-    chmod 644 /usr/share/keyrings/intel-graphics.gpg && \
-    apt-get update && \
-    # Intel GPU 관련 패키지 설치
-    apt-get install -y --no-install-recommends libze-dev libze-intel-gpu1 libze1 intel-metrics-discovery intel-opencl-icd clinfo intel-gsc intel-ocloc && \
-    # Python 3.11 설치
-    add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get install -y --no-install-recommends python3.11 python3-pip python3.11-dev python3.11-distutils python3-wheel && \
-    rm /usr/bin/python3 && ln -s /usr/bin/python3.11 /usr/bin/python3 && ln -s /usr/bin/python3 /usr/bin/python && \
-    # IPEX-LLM 재설치
-    pip3 install --break-system-packages --pre --upgrade ipex-llm[xpu]==2.3.0b20250630 --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ && \
-    # Intel GPU 런타임 및 드라이버 패키지 레포지토리에서 설치
-    apt-get install -y --no-install-recommends intel-opencl-icd libigdgmm12 intel-metrics-discovery clinfo intel-gsc intel-ocloc intel-basekit && \
-    # Clean up unnecessary dependencies to reduce image size
-    find /usr/lib/python3/dist-packages/ -name 'blinker*' -exec rm -rf {} + && \
-    rm -rf /root/.cache/Cypress
 RUN mkdir -p /dev/dri 
 RUN cd / && wget https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C / && \
+    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib && \
     rm ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz
+
 EXPOSE 11434
-ENTRYPOINT ["/bin/bash", "/start-ollama.sh"]
+
+ENTRYPOINT ["/bin/bash", "/lib/start-ollama.sh"]
