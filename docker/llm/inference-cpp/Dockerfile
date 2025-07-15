@@ -39,7 +39,7 @@ RUN mkdir -p /tmp/gpu && \
 
 RUN mkdir -p /dev/dri 
 RUN cd / && wget https://github.com/ipex-llm/ipex-llm/releases/download/v2.3.0-nightly/ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz && \
-    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib && \
+    tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C /lib && tar -xvf ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz --strip-components=1 -C / &&\
     rm ./ollama-ipex-llm-2.3.0b20250630-ubuntu.tgz
 
 EXPOSE 11434
